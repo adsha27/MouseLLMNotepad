@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MouseKB Options</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">MouseKB Connection</p>
+        <h1>Point the extension at your local service.</h1>
+      </section>
+
+      <section class="card">
+        <label class="field">
+          <span>Server URL</span>
+          <input id="serverUrl" type="url" placeholder="http://127.0.0.1:8765">
+        </label>
+        <label class="field">
+          <span>Client secret</span>
+          <textarea id="clientSecret" placeholder="Run `uv run mousekb print-secret` in this project."></textarea>
+        </label>
+        <div class="actions">
+          <button id="saveButton" class="primary">Save connection</button>
+          <button id="pingButton" class="secondary">Ping health endpoint</button>
+        </div>
+        <p id="status" class="status"></p>
+      </section>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+  </html>

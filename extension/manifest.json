@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "MouseKB",
+  "version": "0.1.0",
+  "description": "Capture selected text into a local-first personal knowledge base.",
+  "permissions": ["storage", "sidePanel"],
+  "host_permissions": ["http://127.0.0.1:8765/*", "http://localhost:8765/*"],
+  "background": {
+    "service_worker": "service_worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "MouseKB"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MouseKB Panel</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <main class="panel">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">MouseKB</p>
+          <h1>Your working memory layer</h1>
+        </div>
+        <button id="openOptionsButton" class="ghost">Connection</button>
+      </section>
+
+      <section class="card">
+        <form id="searchForm" class="search-form">
+          <input id="searchInput" type="search" placeholder="Search notes, topics, proofs, arguments…">
+          <button class="primary" type="submit">Search</button>
+        </form>
+        <p id="searchStatus" class="status"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <h2>Results</h2>
+          <span id="resultCount" class="pill">0</span>
+        </div>
+        <div id="results" class="stack"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <h2>Context Pack</h2>
+          <button id="copyExportButton" class="ghost small">Copy export</button>
+        </div>
+        <div class="grid">
+          <label class="field">
+            <span>Query</span>
+            <input id="contextQuery" type="text" placeholder="What are you working on right now?">
+          </label>
+          <label class="field">
+            <span>Mode</span>
+            <select id="contextMode">
+              <option value="balanced">Balanced</option>
+              <option value="support-heavy">Support-heavy</option>
+              <option value="opposition-heavy">Opposition-heavy</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Max items</span>
+            <input id="maxItems" type="number" min="2" max="12" value="6">
+          </label>
+        </div>
+        <button id="buildContextButton" class="primary">Build context pack</button>
+        <textarea id="contextExport" placeholder="Your exported context pack will appear here."></textarea>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <h2>Approved profile</h2>
+        </div>
+        <div id="approvedProfile" class="stack"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <h2>Pending suggestions</h2>
+        </div>
+        <div id="pendingProfile" class="stack"></div>
+      </section>
+    </main>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+  </html>

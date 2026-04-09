@@ -1,0 +1,119 @@
+:root {
+  --ink: #182127;
+  --muted: #59656e;
+  --accent: #0f766e;
+  --accent-dark: #115e59;
+  --surface: rgba(255, 255, 255, 0.82);
+  --line: rgba(24, 33, 39, 0.12);
+  --canvas-a: #fff8ed;
+  --canvas-b: #edfbf7;
+  --shadow: rgba(24, 33, 39, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 30%),
+    linear-gradient(150deg, var(--canvas-a), var(--canvas-b));
+  font-family: "IBM Plex Sans", "Noto Sans", "Segoe UI", sans-serif;
+}
+
+.shell {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.hero {
+  max-width: 40rem;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.04;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 18px 60px var(--shadow);
+  backdrop-filter: blur(12px);
+  padding: 18px;
+  max-width: 48rem;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.field span {
+  font-weight: 700;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+}
+
+textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-weight: 700;
+}
+
+.secondary {
+  background: rgba(24, 33, 39, 0.08);
+  color: var(--ink);
+}
+
+.status {
+  min-height: 1.2em;
+  color: var(--muted);
+}

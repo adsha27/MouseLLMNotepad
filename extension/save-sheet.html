@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MouseKB Save Sheet</title>
+    <link rel="stylesheet" href="save-sheet.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Quick Capture</p>
+        <h1>Save this selection before it slips.</h1>
+        <p class="hero-copy">Everything lands in your inbox first. Suggested tags and profile clues stay reviewable.</p>
+      </section>
+
+      <section class="card meta-card">
+        <div class="meta-row">
+          <span class="meta-label">Page</span>
+          <span id="pageTitle" class="meta-value">Waiting for selection…</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Source</span>
+          <span id="pageUrl" class="meta-value muted"></span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Policy</span>
+          <span id="capturePolicy" class="meta-value"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <label class="field">
+          <span class="field-label">Selected text</span>
+          <textarea id="selectedText" readonly></textarea>
+        </label>
+        <label class="field">
+          <span class="field-label">Quick note</span>
+          <textarea id="userNote" placeholder="Why are you keeping this? What does it connect to?"></textarea>
+        </label>
+        <label class="field">
+          <span class="field-label">Tags</span>
+          <input id="tagsInput" type="text" placeholder="proofs, ai-memory, counterarguments">
+        </label>
+        <label class="checkbox">
+          <input id="includeSnapshot" type="checkbox">
+          <span>Include a cleaned page snapshot when the source looks public</span>
+        </label>
+      </section>
+
+      <section class="card actions">
+        <button id="saveButton" class="primary">Save to Inbox</button>
+        <button id="openPanelButton" class="secondary">Open Side Panel</button>
+        <button id="openOptionsButton" class="ghost">Connection Settings</button>
+        <p id="status" class="status"></p>
+      </section>
+    </main>
+    <script type="module" src="save-sheet.js"></script>
+  </body>
+  </html>

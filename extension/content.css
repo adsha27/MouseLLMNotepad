@@ -1,0 +1,49 @@
+:root {
+  --mousekb-ink: #182127;
+  --mousekb-accent: #0f766e;
+  --mousekb-accent-strong: #115e59;
+  --mousekb-cream: #fffaf2;
+  --mousekb-shadow: rgba(24, 33, 39, 0.24);
+}
+
+.mousekb-chip {
+  position: fixed;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 242, 0.98), rgba(242, 255, 252, 0.98));
+  box-shadow: 0 16px 40px var(--mousekb-shadow);
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  backdrop-filter: blur(12px);
+  font-family: "IBM Plex Sans", "Noto Sans", "Segoe UI", sans-serif;
+}
+
+.mousekb-chip button {
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+}
+
+.mousekb-primary {
+  padding: 8px 12px;
+  color: white;
+  background: linear-gradient(135deg, var(--mousekb-accent), var(--mousekb-accent-strong));
+  font-weight: 600;
+}
+
+.mousekb-secondary {
+  padding: 8px 10px;
+  color: var(--mousekb-ink);
+  background: rgba(24, 33, 39, 0.08);
+}
+
+.mousekb-chip button:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
