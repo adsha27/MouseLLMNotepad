@@ -16,7 +16,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("print-secret", help="Print the local client secret.")
     subparsers.add_parser("reindex", help="Rebuild the capture index from raw markdown.")
-    subparsers.add_parser("quick-capture", help="Launch the GTK quick-capture window.")
+    quick_capture = subparsers.add_parser("quick-capture", help="Launch the quick-capture window.")
+    quick_capture.add_argument("--text", default="", help="Prefill the captured text.")
+    quick_capture.add_argument("--source-app", default="clipboard", help="Label for the source application.")
     subparsers.add_parser("shortcut-status", help="Show desktop shortcut status.")
 
     bind = subparsers.add_parser("bind-gnome-shortcut", help="Configure a GNOME custom shortcut.")
@@ -56,7 +58,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "quick-capture":
         from .quick_capture import main as quick_capture_main
 
-        return quick_capture_main()
+        forwarded_args: list[str] = []
+        if args.text:
+            forwarded_args.extend(["--text", args.text])
+        if args.source_app:
+            forwarded_args.extend(["--source-app", args.source_app])
+        return quick_capture_main(forwarded_args)
 
     if args.command == "shortcut-status":
         return shortcuts_main(["status"])

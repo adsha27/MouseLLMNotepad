@@ -1,77 +1,87 @@
-# MouseKB
+# MouseLLMNotepad
 
-MouseKB is a local-first personal knowledge capture tool built around two entry points:
+MouseLLMNotepad is a local-first personal knowledge capture tool for saving the text you highlight, the notes you keep, and the patterns in how you think.
 
-- Chrome selection capture with a floating `Add to KB` chip, a compact save sheet, and a side panel for search/profile/context packs.
-- Desktop quick capture for copied text outside the browser.
+Inside the codebase, the Python package and browser extension are still named `mousekb` / `MouseKB`. The repo name is `MouseLLMNotepad`.
 
-The backend stores immutable raw captures as Markdown under `vault/raw/` and keeps a SQLite index in `data/app.db` for hybrid search, profile suggestions, and context-pack generation.
+## What It Does
 
-## What Ships In This MVP
+- Saves selected text from a Chromium-based browser through a floating `Add to KB` chip.
+- Stores raw captures as Markdown in `vault/raw/` so your source material stays readable.
+- Indexes captures in `data/app.db` for local search, profile suggestions, and context-pack generation.
+- Keeps all capture traffic on the same machine by binding the API to `127.0.0.1`.
+- Offers a Linux-first quick-capture window for copied text outside the browser.
 
-- FastAPI backend bound to `127.0.0.1`
-- Local secret authentication for extension and quick-capture clients
-- Browser capture policy with public-page snapshots and private-source selection-only mode
-- Inbox-first note organization with tag/topic/folder suggestions
-- Hybrid retrieval using SQLite FTS plus lightweight hashed embeddings
-- Reviewable profile suggestions for domain, knowledge level, evidence preference, reasoning style, recurring topics, and contrarian interests
-- Context-pack export for use with frontier models
-- GTK 4 quick-capture window for copied text outside the browser
-- Chrome MV3 extension with content script, save sheet, side panel, and options page
+## Platform Support
 
-## Project Layout
+| Device / OS | Browser capture | Side panel | Desktop quick capture | Notes |
+| --- | --- | --- | --- | --- |
+| Linux desktop or laptop | Yes | Yes | Yes, if GTK/PyGObject is available | Best-supported setup today |
+| macOS desktop or laptop | Yes | Yes | Not shipped in this MVP | Use browser capture only |
+| Windows desktop or laptop | Yes | Yes | Not shipped in this MVP | Use browser capture only |
+| Phones / tablets | No | No | No | Unpacked desktop extensions and local loopback service are not supported there |
 
-```text
-mousekb/         Python backend, storage, search, quick-capture UI, CLI helpers
-extension/       Chrome MV3 extension
-vault/raw/       Immutable raw captures and snapshots
-vault/inbox/     Reviewable inbox notes with suggestions
-vault/profile/   Approved and pending profile summaries
-data/app.db      SQLite index
-```
+Important: this MVP is designed to run locally on each machine. The browser extension expects a backend on `http://127.0.0.1:8765` or `http://localhost:8765`, so the browser and API should live on the same device.
 
-## Getting Started
+## Quick Start
 
-1. Create the environment and install dependencies:
+1. Install `Python 3.12+`, `git`, and [`uv`](https://docs.astral.sh/uv/).
+2. Clone the repo and enter it:
+
+   ```bash
+   git clone https://github.com/adsha27/MouseLLMNotepad.git
+   cd MouseLLMNotepad
+   ```
+
+3. Create the project-local virtual environment and install dependencies:
 
    ```bash
    uv sync --extra dev
    ```
 
-2. Start the local API:
+   This creates and uses `.venv` for the project.
+
+4. Start the local API:
 
    ```bash
-   uv run mousekb serve --reload
+   uv run mousekb serve
    ```
 
-3. Print the client secret and keep it handy for the extension and quick-capture UI:
+5. In a second terminal, print the local client secret:
 
    ```bash
    uv run mousekb print-secret
    ```
 
-4. Load the unpacked extension from `extension/` in Chrome.
+6. Load the unpacked extension from `extension/` in Chrome, Chromium, Brave, or Edge:
+   - Open `chrome://extensions`
+   - Turn on `Developer mode`
+   - Click `Load unpacked`
+   - Select the repo's `extension/` folder
 
-5. Open the extension options page and save:
-
+7. Open the extension options page and save:
    - `Server URL`: `http://127.0.0.1:8765`
-   - `Client Secret`: output from `mousekb print-secret`
+   - `Client secret`: the output from `uv run mousekb print-secret`
 
-6. Configure a desktop shortcut to run quick capture:
+8. Highlight text on a web page. You should see the `Add to KB` chip appear near the selection.
 
-   ```bash
-   uv run mousekb shortcut-status
-   uv run mousekb bind-gnome-shortcut --binding '<Ctrl><Shift>K>'
-   ```
+For the full platform-by-platform guide, see [RUN_ON_ANY_DEVICE.md](/home/aditya/not_work/mouseLLMnotepad/RUN_ON_ANY_DEVICE.md).
 
-   If GNOME shortcut registration is not what you want, bind your own OS shortcut to:
+## How MouseLLMNotepad Is Organized
 
-   ```bash
-   uv run mousekb quick-capture
-   ```
+```text
+mousekb/         FastAPI app, storage layer, search, profile logic, CLI, quick capture
+extension/       Chrome MV3 extension
+vault/raw/       Immutable raw captures and snapshots
+vault/inbox/     Reviewable inbox notes with suggestions
+vault/profile/   Approved and pending profile summaries
+data/app.db      SQLite index and profile state
+data/client_secret.txt  Local client secret generated on first run
+```
 
-## Backend Commands
+## Commands
 
+- `uv run mousekb serve`
 - `uv run mousekb serve --reload`
 - `uv run mousekb print-secret`
 - `uv run mousekb reindex`
@@ -79,12 +89,37 @@ data/app.db      SQLite index
 - `uv run mousekb shortcut-status`
 - `uv run mousekb bind-gnome-shortcut --binding '<Ctrl><Shift>K>'`
 
-## Notes On Local Intelligence
+## Moving To Another Device
 
-This MVP intentionally avoids an always-on local generative model. Instead it uses:
+The simplest way to move your data is to copy the repo with both `vault/` and `data/`.
 
-- SQLite FTS for exact and phrase search
-- Hashed local embeddings for semantic similarity
-- Lightweight heuristics for sensitivity, profile-suggestion generation, contrarian detection, and tag/topic extraction
+- Copy `vault/` if you want the raw Markdown captures.
+- Copy `data/` if you want the SQLite index, profile approvals, pending suggestions, and existing client secret.
+- If you copy only `vault/`, run `uv run mousekb reindex` on the new machine to rebuild the capture index.
 
-That keeps the capture path cheap and reliable while preserving a clean seam for later local-LLM enrichment or an MCP adapter.
+If the new machine generates a new `data/client_secret.txt`, update the extension's saved secret on that machine.
+
+## Local-First Security Defaults
+
+- The backend binds to `127.0.0.1` by default.
+- All non-health endpoints require the `X-MouseKB-Client-Secret` header.
+- The extension only has host permissions for `http://127.0.0.1:8765/*` and `http://localhost:8765/*`.
+
+That means this repo is set up for same-machine use by default, not for exposing your knowledge base over the network.
+
+## Troubleshooting
+
+- If the extension cannot save, make sure `uv run mousekb serve` is running and the secret in the options page matches `uv run mousekb print-secret`.
+- If the `Add to KB` chip does not appear, reload the tab after loading or reloading the extension.
+- If `uv run mousekb quick-capture` fails with `No module named 'gi'`, your Python environment does not currently have GTK / PyGObject available. Browser capture will still work.
+- If you change the API host or port, you will also need to update `extension/manifest.json` host permissions and reload the unpacked extension.
+
+## Current MVP Boundaries
+
+- No cloud sync
+- No background external model calls
+- No mobile app
+- No first-class Firefox or Safari support
+- No cross-device shared server mode out of the box
+
+This version is meant to be a strong local-first foundation you can run on a laptop or desktop and later extend.
