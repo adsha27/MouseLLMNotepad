@@ -4,6 +4,7 @@ export const SETTINGS_KEYS = {
   clientSecret: "clientSecret"
 };
 export const DRAFT_KEY = "draftCapture";
+export const LAST_CAPTURE_KEY = "lastCapture";
 
 export async function getSettings() {
   const stored = await chrome.storage.local.get({
@@ -34,6 +35,15 @@ export async function saveDraft(draft) {
 
 export async function clearDraft() {
   await chrome.storage.session.remove(DRAFT_KEY);
+}
+
+export async function getLastCapture() {
+  const stored = await chrome.storage.session.get({ [LAST_CAPTURE_KEY]: null });
+  return stored[LAST_CAPTURE_KEY];
+}
+
+export async function saveLastCapture(capture) {
+  await chrome.storage.session.set({ [LAST_CAPTURE_KEY]: capture });
 }
 
 export function normalizeTags(rawValue) {

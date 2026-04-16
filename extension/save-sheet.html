@@ -9,9 +9,9 @@
   <body>
     <main class="shell">
       <section class="hero">
-        <p class="eyebrow">Quick Capture</p>
-        <h1>Save this selection before it slips.</h1>
-        <p class="hero-copy">Everything lands in your inbox first. Suggested tags and profile clues stay reviewable.</p>
+        <p id="eyebrow" class="eyebrow">Quick Capture</p>
+        <h1 id="heroTitle">Save this selection before it slips.</h1>
+        <p id="heroCopy" class="hero-copy">Everything lands in your inbox first. Suggested tags and profile clues stay reviewable.</p>
       </section>
 
       <section class="card meta-card">
@@ -31,18 +31,26 @@
 
       <section class="card">
         <label class="field">
-          <span class="field-label">Selected text</span>
+          <span id="selectedTextLabel" class="field-label">Selected text</span>
           <textarea id="selectedText" readonly></textarea>
         </label>
         <label class="field">
-          <span class="field-label">Quick note</span>
+          <span id="userNoteLabel" class="field-label">Quick note</span>
           <textarea id="userNote" placeholder="Why are you keeping this? What does it connect to?"></textarea>
         </label>
         <label class="field">
-          <span class="field-label">Tags</span>
+          <span id="tagsLabel" class="field-label">Tags</span>
           <input id="tagsInput" type="text" placeholder="proofs, ai-memory, counterarguments">
         </label>
-        <label class="checkbox">
+        <label id="stanceRow" class="field" hidden>
+          <span class="field-label">Stance</span>
+          <select id="stanceSelect">
+            <option value="neutral">Neutral</option>
+            <option value="opposing">Opposing / cautionary</option>
+            <option value="supporting">Supporting</option>
+          </select>
+        </label>
+        <label id="snapshotRow" class="checkbox">
           <input id="includeSnapshot" type="checkbox">
           <span>Include a cleaned page snapshot when the source looks public</span>
         </label>

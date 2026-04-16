@@ -17,6 +17,41 @@
       </section>
 
       <section class="card">
+        <div class="section-header">
+          <h2>AI Ready</h2>
+          <span class="pill">Sanitized</span>
+        </div>
+        <div class="button-row">
+          <button id="copySafeIntroButton" class="primary" type="button">Copy Safe Intro</button>
+          <button id="copyCurrentContextButton" class="secondary" type="button">Copy Current Context</button>
+          <button id="openChatGPTButton" class="ghost small" type="button">Open in ChatGPT</button>
+        </div>
+        <div class="stack">
+          <article class="mini-block">
+            <h3>Safe profile</h3>
+            <p id="safeProfileSummary" class="snippet">MouseKB is still building your safe profile.</p>
+          </article>
+          <article class="mini-block">
+            <h3>Active now</h3>
+            <p id="activeNowSummary" class="snippet">Recent captures will roll up here after the fast-save path.</p>
+          </article>
+        </div>
+        <div id="sharePolicies" class="rule-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <h2>Latest Capture</h2>
+          <span id="lastCaptureStage" class="pill muted-pill">none</span>
+        </div>
+        <div id="lastCapture" class="stack"></div>
+        <div class="button-row">
+          <button id="reviewLastCaptureButton" class="secondary" type="button">Add note</button>
+          <button id="markLastPrivateButton" class="ghost small" type="button">Mark private</button>
+        </div>
+      </section>
+
+      <section class="card">
         <form id="searchForm" class="search-form">
           <input id="searchInput" type="search" placeholder="Search notes, topics, proofs, arguments…">
           <button class="primary" type="submit">Search</button>
@@ -34,29 +69,10 @@
 
       <section class="card">
         <div class="section-header">
-          <h2>Context Pack</h2>
-          <button id="copyExportButton" class="ghost small">Copy export</button>
+          <h2>Topic Cards</h2>
+          <span id="topicCardCount" class="pill">0</span>
         </div>
-        <div class="grid">
-          <label class="field">
-            <span>Query</span>
-            <input id="contextQuery" type="text" placeholder="What are you working on right now?">
-          </label>
-          <label class="field">
-            <span>Mode</span>
-            <select id="contextMode">
-              <option value="balanced">Balanced</option>
-              <option value="support-heavy">Support-heavy</option>
-              <option value="opposition-heavy">Opposition-heavy</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Max items</span>
-            <input id="maxItems" type="number" min="2" max="12" value="6">
-          </label>
-        </div>
-        <button id="buildContextButton" class="primary">Build context pack</button>
-        <textarea id="contextExport" placeholder="Your exported context pack will appear here."></textarea>
+        <div id="topicCards" class="stack"></div>
       </section>
 
       <section class="card">

@@ -108,7 +108,8 @@ h1 {
 }
 
 textarea,
-input[type="text"] {
+input[type="text"],
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -151,6 +152,12 @@ button {
 button:hover {
   transform: translateY(-1px);
   opacity: 0.96;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+  transform: none;
 }
 
 .primary {

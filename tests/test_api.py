@@ -1,13 +1,43 @@
 from __future__ import annotations
 
+import math
 import sqlite3
 from contextlib import asynccontextmanager
 
 import httpx
 import pytest
 
+from mousekb import embeddings as embedding_module
 from mousekb.api import create_app
 from mousekb.config import CLIENT_SECRET_HEADER, Settings
+
+
+def _normalized(values: list[float]) -> list[float] | None:
+    norm = math.sqrt(sum(value * value for value in values))
+    if not norm:
+        return None
+    return [value / norm for value in values]
+
+
+def _fake_embedding(text: str) -> list[float] | None:
+    lowered = text.lower()
+    vector = [0.0, 0.0, 0.0, 0.0]
+
+    if any(token in lowered for token in ("fast capture", "instant", "immediately", "indexing", "background organization")):
+        vector[0] += 1.0
+    if any(token in lowered for token in ("proof", "proofs", "evidence", "citation", "citations", "source-backed")):
+        vector[1] += 1.0
+    if any(token in lowered for token in ("mechanistic interpretability", "model circuits", "counterargument", "skeptical", "objection", "anti-case")):
+        vector[2] += 1.0
+    if any(token in lowered for token in ("privacy", "local-first", "private", "sensitive")):
+        vector[3] += 1.0
+
+    return _normalized(vector)
+
+
+@pytest.fixture(autouse=True)
+def stub_local_embeddings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(embedding_module.LocalEmbeddingEngine, "embed_text", lambda self, text: _fake_embedding(text))
 
 
 @asynccontextmanager
@@ -43,6 +73,7 @@ async def test_public_browser_capture_writes_snapshot_and_search_index(tmp_path)
         assert response.status_code == 200
         payload = response.json()
         assert payload["snapshot_path"]
+        assert payload["stance"] == "neutral"
         assert (settings.project_root / payload["raw_path"]).exists()
         assert (settings.project_root / payload["snapshot_path"]).exists()
         assert (settings.project_root / payload["inbox_path"]).exists()
@@ -81,66 +112,174 @@ async def test_private_capture_skips_snapshot_and_secret_is_required(tmp_path):
 
 
 @pytest.mark.anyio
-async def test_profile_review_and_context_pack_include_opposition_and_raw_notes(tmp_path):
+async def test_hybrid_search_prefers_exact_match_and_supports_semantic_recall(tmp_path):
     async with build_client(tmp_path) as (client, settings):
         headers = auth_headers(settings)
 
-        first = await client.post(
+        exact = await client.post(
             "/captures/browser",
             headers=headers,
             json={
-                "selected_text": "I want first principles, evidence, citations, and proofs when evaluating mechanistic interpretability claims.",
-                "page_url": "https://example.com/mi-principles",
-                "page_title": "Mechanistic interpretability from first principles",
-                "page_snapshot_markdown": "## Claims\n\nStrong evidence and source discipline matter.",
+                "selected_text": "Mechanistic interpretability needs evidence, objections, and careful proofs.",
+                "page_url": "https://example.com/mech-interp",
+                "page_title": "Mechanistic interpretability evidence objections",
+                "page_snapshot_markdown": "## Notes\n\nObjections matter.",
                 "is_public_source": True,
-                "tags": ["mechanistic interpretability"],
+                "tags": ["mechanistic interpretability", "proofs"],
             },
         )
-        assert first.status_code == 200
+        assert exact.status_code == 200
+        exact_id = exact.json()["id"]
 
-        second = await client.post(
+        semantic = await client.post(
             "/captures/browser",
             headers=headers,
             json={
-                "selected_text": "Counterargument: the anti-case against mechanistic interpretability says the evidence is still thin and objections matter.",
-                "page_url": "https://example.com/mi-counterargument",
-                "page_title": "The anti-case",
-                "page_snapshot_markdown": "## Objections\n\nThere are still open objections.",
+                "selected_text": "A good system should save instantly and let background organization happen later.",
+                "page_url": "https://example.com/fast-capture",
+                "page_title": "Fast capture without blocking",
+                "page_snapshot_markdown": "## Notes\n\nCapture should return immediately.",
                 "is_public_source": True,
-                "tags": ["mechanistic interpretability"],
+                "tags": ["fast capture"],
             },
         )
-        assert second.status_code == 200
-        second_payload = second.json()
-        assert second_payload["contrarian"] is True
+        assert semantic.status_code == 200
+        semantic_id = semantic.json()["id"]
 
-        profile = await client.get("/profile", headers=headers)
-        assert profile.status_code == 200
-        profile_payload = profile.json()
-        assert profile_payload["pending"]
+        process = await client.post("/admin/process-pending", headers=headers)
+        assert process.status_code == 200
 
-        suggestion_id = profile_payload["pending"][0]["id"]
-        approve = await client.post(f"/profile-suggestions/{suggestion_id}/approve", headers=headers)
-        assert approve.status_code == 200
-        approved_payload = approve.json()
-        assert approved_payload["approved"]
+        exact_search = await client.get(
+            "/search",
+            params={"q": "mechanistic interpretability evidence objections"},
+            headers=headers,
+        )
+        assert exact_search.status_code == 200
+        exact_payload = exact_search.json()
+        assert exact_payload["items"][0]["id"] == exact_id
+        assert "matched exact terms" in exact_payload["items"][0]["reasons"]
 
-        context_pack = await client.post(
-            "/context-packs",
+        semantic_search = await client.get(
+            "/search",
+            params={"q": "saving selections instantly while indexing happens later"},
+            headers=headers,
+        )
+        assert semantic_search.status_code == 200
+        semantic_payload = semantic_search.json()
+        assert semantic_payload["items"][0]["id"] == semantic_id
+        assert "semantic overlap" in semantic_payload["items"][0]["reasons"]
+
+
+@pytest.mark.anyio
+async def test_stance_override_topic_cards_and_ai_context_pack(tmp_path):
+    async with build_client(tmp_path) as (client, settings):
+        headers = auth_headers(settings)
+
+        support_capture = await client.post(
+            "/captures/browser",
             headers=headers,
             json={
-                "query": "mechanistic interpretability evidence objections",
-                "include_raw_note_ids": [second_payload["id"]],
+                "selected_text": "Fast capture should stay local-first and keep evidence close to the saved note.",
+                "page_url": "https://example.com/fast-capture-support",
+                "page_title": "Fast capture support",
+                "page_snapshot_markdown": "## Notes\n\nEvidence trails matter.",
+                "is_public_source": True,
+                "tags": ["fast capture", "proofs"],
+            },
+        )
+        assert support_capture.status_code == 200
+        support_id = support_capture.json()["id"]
+
+        opposing_capture = await client.post(
+            "/captures/browser",
+            headers=headers,
+            json={
+                "selected_text": "Counterargument: fast capture tools become bloated when privacy boundaries are fuzzy and objections get buried.",
+                "page_url": "https://example.com/fast-capture-risk",
+                "page_title": "Fast capture anti-case",
+                "page_snapshot_markdown": "## Risks\n\nCounterarguments prevent self-propaganda.",
+                "is_public_source": True,
+                "tags": ["fast capture", "privacy"],
+            },
+        )
+        assert opposing_capture.status_code == 200
+        opposing_id = opposing_capture.json()["id"]
+        assert opposing_capture.json()["stance"] == "opposing"
+
+        review = await client.post(
+            f"/captures/{support_id}/review",
+            headers=headers,
+            json={
+                "review_note": "Keep this as the main supporting case for the fast-capture architecture.",
+                "review_tags": ["fast capture", "proofs"],
+                "stance_override": "supporting",
+            },
+        )
+        assert review.status_code == 200
+        assert review.json()["stance"] == "supporting"
+
+        process = await client.post("/admin/process-pending", headers=headers)
+        assert process.status_code == 200
+
+        search = await client.get("/search", params={"q": "fast capture privacy evidence"}, headers=headers)
+        assert search.status_code == 200
+        result_stances = {item["id"]: item["stance"] for item in search.json()["items"]}
+        assert result_stances[support_id] == "supporting"
+        assert result_stances[opposing_id] == "opposing"
+
+        topic_cards = await client.get("/ai/topic-cards", params={"q": "fast capture"}, headers=headers)
+        assert topic_cards.status_code == 200
+        topic_payload = topic_cards.json()
+        assert topic_payload["total"] >= 1
+        first_card = topic_payload["items"][0]
+        assert first_card["support_count"] >= 1
+        assert first_card["oppose_count"] >= 1
+
+        ai_pack = await client.post(
+            "/ai/context-packs",
+            headers=headers,
+            json={
+                "query": "fast capture privacy evidence",
                 "max_items": 6,
                 "mode": "balanced",
             },
         )
-        assert context_pack.status_code == 200
-        pack_payload = context_pack.json()
-        assert pack_payload["opposing_notes"]
-        assert "Explicit Raw Notes" in pack_payload["export_text"]
-        assert second_payload["id"] in pack_payload["export_text"]
+        assert ai_pack.status_code == 200
+        pack_payload = ai_pack.json()
+        assert "Counterarguments or cautionary notes:" in pack_payload["share_text"]
+        assert "Fast capture anti-case" in pack_payload["share_text"]
+        assert "No explicit opposing evidence" not in pack_payload["share_text"]
+
+
+@pytest.mark.anyio
+async def test_ai_context_pack_calls_out_missing_opposition(tmp_path):
+    async with build_client(tmp_path) as (client, settings):
+        headers = auth_headers(settings)
+
+        response = await client.post(
+            "/captures/browser",
+            headers=headers,
+            json={
+                "selected_text": "Evidence-backed local-first notes help frontier chats feel continuous.",
+                "page_url": "https://example.com/local-first",
+                "page_title": "Local-first continuity",
+                "page_snapshot_markdown": "## Notes\n\nKeep raw captures local.",
+                "is_public_source": True,
+                "tags": ["local-first", "proofs"],
+            },
+        )
+        assert response.status_code == 200
+
+        process = await client.post("/admin/process-pending", headers=headers)
+        assert process.status_code == 200
+
+        ai_pack = await client.post(
+            "/ai/context-packs",
+            headers=headers,
+            json={"query": "local-first continuity", "max_items": 4, "mode": "balanced"},
+        )
+        assert ai_pack.status_code == 200
+        assert "No explicit opposing evidence was found for this topic in MouseKB yet." in ai_pack.json()["share_text"]
 
 
 @pytest.mark.anyio
@@ -175,3 +314,64 @@ async def test_reindex_restores_captures_from_markdown(tmp_path):
         search_after = await client.get("/search", params={"q": "empirical evidence"}, headers=headers)
         assert search_after.status_code == 200
         assert search_after.json()["total"] == 1
+
+
+@pytest.mark.anyio
+async def test_search_falls_back_to_lexical_when_embeddings_are_unavailable(tmp_path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(embedding_module.LocalEmbeddingEngine, "embed_text", lambda self, text: None)
+
+    async with build_client(tmp_path) as (client, settings):
+        headers = auth_headers(settings)
+        response = await client.post(
+            "/captures/browser",
+            headers=headers,
+            json={
+                "selected_text": "Lexical retrieval should still work when embeddings are not available.",
+                "page_url": "https://example.com/lexical-only",
+                "page_title": "Lexical fallback",
+                "page_snapshot_markdown": "## Notes\n\nDense recall is optional.",
+                "is_public_source": True,
+                "tags": ["retrieval"],
+            },
+        )
+        assert response.status_code == 200
+
+        search = await client.get("/search", params={"q": "lexical retrieval"}, headers=headers)
+        assert search.status_code == 200
+        assert search.json()["total"] == 1
+        assert search.json()["items"][0]["title"] == "Lexical fallback"
+
+
+@pytest.mark.anyio
+async def test_chat_wrapup_saves_structured_note_and_legacy_context_route_is_removed(tmp_path):
+    async with build_client(tmp_path) as (client, settings):
+        headers = auth_headers(settings)
+
+        legacy = await client.post(
+            "/context-packs",
+            headers=headers,
+            json={"query": "should fail"},
+        )
+        assert legacy.status_code == 404
+
+        wrapup = await client.post(
+            "/ai/chat-wrapups",
+            headers=headers,
+            json={
+                "source_app": "chatgpt",
+                "source_url": "https://chatgpt.com/c/example",
+                "conversation_title": "MouseLLM architecture",
+                "user_note": "Save only the durable pieces.",
+                "messages": [
+                    {"role": "user", "content": "We need fast capture, delayed review, and lightweight post-processing."},
+                    {"role": "assistant", "content": "The KB should include counterarguments so it does not become self-propaganda."},
+                    {"role": "user", "content": "Open question: how do we explain the plain ChatGPT paste flow clearly?"},
+                ],
+            },
+        )
+        assert wrapup.status_code == 200
+        wrapup_payload = wrapup.json()
+        assert wrapup_payload["source_app"] == "chatgpt"
+        assert wrapup_payload["summary"]
+        assert wrapup_payload["capture_id"]
+        assert (settings.project_root / wrapup_payload["inbox_path"]).exists()

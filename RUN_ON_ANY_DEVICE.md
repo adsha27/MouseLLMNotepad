@@ -9,6 +9,7 @@ MouseLLMNotepad is a same-machine app in this MVP:
 - the FastAPI backend listens on `127.0.0.1:8765`
 - the browser extension is allowed to talk only to `127.0.0.1:8765` or `localhost:8765`
 - the browser and backend are expected to run on the same device
+- plain ChatGPT / Codex use is done by copying a safe intro or current context out of the side panel
 
 So "run it on any device" means: install and run it locally on that device.
 
@@ -66,8 +67,10 @@ Use this if you want the full experience: browser capture, side panel, and the o
    - open a normal public web page
    - select some text
    - click `Add to KB`
-   - confirm the save sheet appears
+   - confirm the capture saves immediately and a toast appears
+   - click `Add note` only if you want to annotate it right away
    - open the side panel and search for the captured text
+   - use `Copy Safe Intro` or `Copy Current Context` if you want to take the result into ChatGPT or Codex
 
 ### Optional: Linux quick capture outside the browser
 
@@ -127,6 +130,7 @@ Use this when you mainly want browser capture plus the side panel.
 6. Load the unpacked extension from `extension/` into Chrome or another Chromium-based browser that supports MV3 side panels.
 7. Save the server URL and secret in the extension options.
 8. Use browser selection capture and the side panel normally.
+9. For ChatGPT / Codex, use the side panel copy buttons and paste the safe context into the chat.
 
 Current limitation: the shipped quick-capture desktop window and GNOME shortcut helper are not part of the macOS path in this MVP.
 
@@ -163,6 +167,7 @@ The Windows path is similar to macOS: browser capture works, but the Linux GTK q
 6. Load `extension/` as an unpacked extension in Chrome or Edge.
 7. Save the server URL and secret in the extension options.
 8. Test capture on a normal web page.
+9. Use the side panel copy buttons when you want plain-chat context in ChatGPT or Codex.
 
 ## 4. Moving an existing setup to another device
 
@@ -193,7 +198,7 @@ If you already have data on one machine and want the same vault on another:
 
 - `vault/raw/`: your raw Markdown captures and snapshots
 - `vault/inbox/`: review notes created for captures
-- `data/app.db`: search index, profile suggestions, context-pack history, approvals
+- `data/app.db`: search index, profile suggestions, topic cards, and approvals
 - `data/client_secret.txt`: local API secret
 
 ### What `reindex` does
@@ -235,6 +240,14 @@ Check all of these:
 ### `quick-capture` fails on Linux
 
 If you see `ModuleNotFoundError: No module named 'gi'`, your Python environment does not currently have the GTK / PyGObject bridge available. The browser-based workflow is still supported on that machine.
+
+### Semantic search feels weak right after setup
+
+MouseLLMNotepad now uses a small local embedding model for semantic recall. The first warm-processing pass may need a moment to populate embeddings.
+
+- exact-term search still works immediately through FTS/BM25
+- `uv run mousekb process-pending` can force queued enrichment to finish
+- if the local embedding model cannot load, MouseLLMNotepad falls back to lexical search instead of blocking capture
 
 ### I want to use a different port
 

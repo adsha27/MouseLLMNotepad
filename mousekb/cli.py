@@ -16,6 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("print-secret", help="Print the local client secret.")
     subparsers.add_parser("reindex", help="Rebuild the capture index from raw markdown.")
+    subparsers.add_parser("process-pending", help="Run any queued warm/cold processing jobs.")
     quick_capture = subparsers.add_parser("quick-capture", help="Launch the quick-capture window.")
     quick_capture.add_argument("--text", default="", help="Prefill the captured text.")
     quick_capture.add_argument("--source-app", default="clipboard", help="Label for the source application.")
@@ -53,6 +54,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "reindex":
         store = MouseKBStore(get_settings())
         print(store.reindex_from_markdown())
+        return 0
+
+    if args.command == "process-pending":
+        store = MouseKBStore(get_settings())
+        print(store.run_pending_jobs())
         return 0
 
     if args.command == "quick-capture":

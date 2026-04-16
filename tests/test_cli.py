@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from mousekb import cli, quick_capture
 
 
@@ -18,3 +20,10 @@ def test_quick_capture_module_imports_without_gtk_in_current_interpreter():
 
     assert args.text == "hello"
     assert args.source_app == "browser"
+
+
+def test_cli_no_longer_exposes_cloud_server_command():
+    parser = cli.build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["serve-cloud"])

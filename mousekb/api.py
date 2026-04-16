@@ -10,14 +10,21 @@ from fastapi.responses import JSONResponse
 
 from .config import CLIENT_SECRET_HEADER, Settings, get_settings
 from .models import (
+    AIContextPackRequest,
+    AIContextPackResponse,
+    ActiveNowResponse,
     BrowserCaptureIn,
+    CaptureReviewIn,
     CaptureRecord,
+    ChatWrapupIn,
+    ChatWrapupResponse,
     ClipboardCaptureIn,
-    ContextPackRequest,
-    ContextPackResponse,
     HealthResponse,
     ProfileResponse,
+    SafeProfileResponse,
     SearchResponse,
+    SharePoliciesResponse,
+    TopicCardsResponse,
 )
 from .store import MouseKBStore
 
@@ -104,24 +111,70 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         return CaptureRecord.model_validate(record)
 
+    @app.post("/captures/{capture_id}/review", response_model=CaptureRecord)
+    async def review_capture(capture_id: str, payload: CaptureReviewIn) -> CaptureRecord:
+        try:
+            record = current_store().save_capture_review(capture_id, payload.model_dump())
+        except KeyError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Capture not found") from exc
+        return CaptureRecord.model_validate(record)
+
+    @app.post("/captures/{capture_id}/mark-private", response_model=CaptureRecord)
+    async def mark_capture_private(capture_id: str) -> CaptureRecord:
+        try:
+            record = current_store().mark_capture_private(capture_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Capture not found") from exc
+        return CaptureRecord.model_validate(record)
+
     @app.get("/search", response_model=SearchResponse)
     async def search(q: str) -> SearchResponse:
         items = current_store().search(q)
         return SearchResponse(query=q, total=len(items), items=items)
 
-    @app.post("/context-packs", response_model=ContextPackResponse)
-    async def build_context_pack(payload: ContextPackRequest) -> ContextPackResponse:
-        result = current_store().build_context_pack(
+    @app.get("/profile", response_model=ProfileResponse)
+    async def get_profile() -> ProfileResponse:
+        current_store().run_pending_jobs()
+        return ProfileResponse.model_validate(current_store().get_profile())
+
+    @app.get("/ai/safe-profile", response_model=SafeProfileResponse)
+    async def get_safe_profile() -> SafeProfileResponse:
+        current_store().run_pending_jobs()
+        return SafeProfileResponse.model_validate(current_store().get_safe_profile())
+
+    @app.get("/ai/active-now", response_model=ActiveNowResponse)
+    async def get_active_now() -> ActiveNowResponse:
+        current_store().run_pending_jobs()
+        return ActiveNowResponse.model_validate(current_store().get_active_now())
+
+    @app.get("/ai/topic-cards", response_model=TopicCardsResponse)
+    async def get_topic_cards(q: str = "") -> TopicCardsResponse:
+        current_store().run_pending_jobs()
+        items = current_store().search_topic_cards(q)
+        return TopicCardsResponse(query=q, total=len(items), items=items)
+
+    @app.get("/ai/share-policies", response_model=SharePoliciesResponse)
+    async def get_share_policies() -> SharePoliciesResponse:
+        current_store().run_pending_jobs()
+        return SharePoliciesResponse.model_validate(current_store().get_share_policies())
+
+    @app.post("/ai/context-packs", response_model=AIContextPackResponse)
+    async def build_ai_context_pack(payload: AIContextPackRequest) -> AIContextPackResponse:
+        current_store().run_pending_jobs()
+        result = current_store().build_ai_context_pack(
             query=payload.query,
-            include_raw_note_ids=payload.include_raw_note_ids,
             max_items=payload.max_items,
             mode=payload.mode,
         )
-        return ContextPackResponse.model_validate(result)
+        return AIContextPackResponse.model_validate(result)
 
-    @app.get("/profile", response_model=ProfileResponse)
-    async def get_profile() -> ProfileResponse:
-        return ProfileResponse.model_validate(current_store().get_profile())
+    @app.post("/ai/chat-wrapups", response_model=ChatWrapupResponse)
+    async def create_chat_wrapup(payload: ChatWrapupIn) -> ChatWrapupResponse:
+        try:
+            result = current_store().save_chat_wrapup(payload.model_dump())
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        return ChatWrapupResponse.model_validate(result)
 
     @app.post("/profile-suggestions/{suggestion_id}/approve", response_model=ProfileResponse)
     async def approve_profile_suggestion(suggestion_id: str) -> ProfileResponse:
@@ -142,6 +195,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/admin/reindex")
     async def reindex() -> dict[str, int]:
         return current_store().reindex_from_markdown()
+
+    @app.post("/admin/process-pending")
+    async def process_pending() -> dict[str, int]:
+        return current_store().run_pending_jobs()
 
     return app
 

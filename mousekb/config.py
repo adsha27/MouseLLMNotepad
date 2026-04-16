@@ -47,6 +47,10 @@ class Settings:
         return self.data_dir / "client_secret.txt"
 
     @property
+    def embedding_cache_dir(self) -> Path:
+        return self.data_dir / "embeddings"
+
+    @property
     def approved_profile_path(self) -> Path:
         return self.profile_dir / "approved.md"
 
@@ -55,8 +59,18 @@ class Settings:
         return self.profile_dir / "pending.md"
 
     @classmethod
-    def from_root(cls, project_root: Path, *, bind_host: str = DEFAULT_HOST, bind_port: int = DEFAULT_PORT) -> "Settings":
-        return cls(project_root=project_root, bind_host=bind_host, bind_port=bind_port)
+    def from_root(
+        cls,
+        project_root: Path,
+        *,
+        bind_host: str = DEFAULT_HOST,
+        bind_port: int = DEFAULT_PORT,
+    ) -> "Settings":
+        return cls(
+            project_root=project_root,
+            bind_host=bind_host,
+            bind_port=bind_port,
+        )
 
     def ensure_layout(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -83,7 +97,11 @@ def get_settings() -> Settings:
 
     bind_host = os.environ.get("MOUSEKB_HOST", DEFAULT_HOST)
     bind_port = int(os.environ.get("MOUSEKB_PORT", DEFAULT_PORT))
-    settings = Settings.from_root(root, bind_host=bind_host, bind_port=bind_port)
+    settings = Settings.from_root(
+        root,
+        bind_host=bind_host,
+        bind_port=bind_port,
+    )
     settings.ensure_layout()
     settings.ensure_client_secret()
     return settings

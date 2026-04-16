@@ -7,9 +7,12 @@ Inside the codebase, the Python package and browser extension are still named `m
 ## What It Does
 
 - Saves selected text from a Chromium-based browser through a floating `Add to KB` chip.
+- Commits captures immediately to `vault/inbox/` and finishes lightweight organization in the background.
 - Stores raw captures as Markdown in `vault/raw/` so your source material stays readable.
-- Indexes captures in `data/app.db` for local search, profile suggestions, and context-pack generation.
+- Indexes captures in `data/app.db` for local search, profile suggestions, topic cards, AI-safe summaries, and context-pack generation.
+- Uses hybrid retrieval locally: FTS/BM25 for exact matches plus one small local embedding model for semantic recall.
 - Keeps all capture traffic on the same machine by binding the API to `127.0.0.1`.
+- Gives you a plain-chat flow for ChatGPT / Codex by copying a safe intro or current context into the clipboard.
 - Offers a Linux-first quick-capture window for copied text outside the browser.
 
 ## Platform Support
@@ -64,6 +67,12 @@ Important: this MVP is designed to run locally on each machine. The browser exte
    - `Client secret`: the output from `uv run mousekb print-secret`
 
 8. Highlight text on a web page. You should see the `Add to KB` chip appear near the selection.
+9. Click `Add to KB`. The capture should save immediately and show a toast with optional follow-ups like `Add note` or `Mark private`.
+10. Open the side panel to:
+   - search your captures
+   - review profile suggestions
+   - copy a safe intro or current context into ChatGPT / Codex
+   - inspect topic cards with supporting and opposing evidence
 
 For the full platform-by-platform guide, see [RUN_ON_ANY_DEVICE.md](/home/aditya/not_work/mouseLLMnotepad/RUN_ON_ANY_DEVICE.md).
 
@@ -79,12 +88,22 @@ data/app.db      SQLite index and profile state
 data/client_secret.txt  Local client secret generated on first run
 ```
 
+## Using It With ChatGPT Or Codex
+
+MouseLLMNotepad is plain-chat-first:
+
+- Open the side panel and click `Copy Safe Intro` or `Copy Current Context`.
+- Paste that into a normal ChatGPT or Codex conversation.
+- ChatGPT does not fetch your local data directly. You choose what to paste.
+- The exported context is sanitized and deliberately includes cautionary or opposing evidence when MouseKB has it.
+
 ## Commands
 
 - `uv run mousekb serve`
 - `uv run mousekb serve --reload`
 - `uv run mousekb print-secret`
 - `uv run mousekb reindex`
+- `uv run mousekb process-pending`
 - `uv run mousekb quick-capture`
 - `uv run mousekb shortcut-status`
 - `uv run mousekb bind-gnome-shortcut --binding '<Ctrl><Shift>K>'`
@@ -104,6 +123,7 @@ If the new machine generates a new `data/client_secret.txt`, update the extensio
 - The backend binds to `127.0.0.1` by default.
 - All non-health endpoints require the `X-MouseKB-Client-Secret` header.
 - The extension only has host permissions for `http://127.0.0.1:8765/*` and `http://localhost:8765/*`.
+- Raw captures, private notes, and full chat transcripts stay local unless you explicitly share them.
 
 That means this repo is set up for same-machine use by default, not for exposing your knowledge base over the network.
 
@@ -111,15 +131,17 @@ That means this repo is set up for same-machine use by default, not for exposing
 
 - If the extension cannot save, make sure `uv run mousekb serve` is running and the secret in the options page matches `uv run mousekb print-secret`.
 - If the `Add to KB` chip does not appear, reload the tab after loading or reloading the extension.
+- If you expected ChatGPT to "just know" your local context, use the side panel's `Copy Safe Intro` / `Copy Current Context` buttons first. Plain ChatGPT chats do not read the local vault automatically.
+- If search feels semantically weak right after install, let the first background embedding pass finish. MouseKB falls back to lexical search if the local embedding model is not ready yet.
 - If `uv run mousekb quick-capture` fails with `No module named 'gi'`, your Python environment does not currently have GTK / PyGObject available. Browser capture will still work.
 - If you change the API host or port, you will also need to update `extension/manifest.json` host permissions and reload the unpacked extension.
 
 ## Current MVP Boundaries
 
-- No cloud sync
 - No background external model calls
 - No mobile app
 - No first-class Firefox or Safari support
-- No cross-device shared server mode out of the box
+- No automatic plain-ChatGPT access to your local data without a deliberate paste/share step
+- No cross-device shared raw-note server mode out of the box
 
 This version is meant to be a strong local-first foundation you can run on a laptop or desktop and later extend.

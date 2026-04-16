@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import math
 import re
 from collections import Counter
 
@@ -132,28 +130,6 @@ def extract_keyphrases(text: str, *, limit: int = 6) -> list[str]:
     return selected
 
 
-def hashed_embedding(text: str, *, dims: int = 192) -> list[float]:
-    vector = [0.0] * dims
-    tokens = tokenize(text)
-    if not tokens:
-        return vector
-
-    features = list(tokens)
-    features.extend(f"{left}:{right}" for left, right in zip(tokens, tokens[1:]))
-
-    for feature in features:
-        digest = hashlib.blake2b(feature.encode("utf-8"), digest_size=16).digest()
-        index = int.from_bytes(digest[:4], "big") % dims
-        sign = 1.0 if digest[4] % 2 == 0 else -1.0
-        weight = 1.5 if ":" in feature else 1.0
-        vector[index] += sign * weight
-
-    norm = math.sqrt(sum(value * value for value in vector))
-    if not norm:
-        return vector
-    return [value / norm for value in vector]
-
-
 def cosine_similarity(left: list[float], right: list[float]) -> float:
     if not left or not right or len(left) != len(right):
         return 0.0
@@ -191,6 +167,15 @@ def detect_reasoning_cues(text: str) -> dict[str, bool]:
         "evidence_preference": any(cue in lowered for cue in EVIDENCE_CUES),
         "knowledge_level": any(cue in lowered for cue in KNOWLEDGE_CUES),
     }
+
+
+def infer_stance(text: str, *, stance_override: str | None = None) -> str:
+    if stance_override in {"neutral", "opposing", "supporting"}:
+        return stance_override
+    cues = detect_reasoning_cues(text)
+    if cues["contrarian_interest"]:
+        return "opposing"
+    return "neutral"
 
 
 def snippet_for_query(text: str, query: str, *, width: int = 220) -> str:
